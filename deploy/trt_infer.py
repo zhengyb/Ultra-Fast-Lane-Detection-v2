@@ -106,6 +106,16 @@ class UFLDv2:
                 coords.append(tmp)
         return coords
 
+    def forward_core(self, img):
+        cuda.memcpy_htod(self.inputs[0]['allocation'], img)
+        self.context.execute_v2(self.allocations)
+        preds = {}
+        for out in self.outputs:
+            output = np.zeros(out['shape'], out['dtype'])
+            cuda.memcpy_dtoh(output, out['allocation'])
+            preds[out['name']] = torch.tensor(output)
+        return preds
+
     def forward(self, img):
         im0 = img.copy()
         img = img[self.cut_height:, :, :]
@@ -124,7 +134,8 @@ class UFLDv2:
         for lane in coords:
             for coord in lane:
                 cv2.circle(im0, coord, 2, (0, 255, 0), -1)
-        cv2.imshow("result", im0)
+        #cv2.imshow("result", im0)
+        cv2.imwrite("result.jpg", im0)
 
 
 def get_args():
@@ -133,7 +144,7 @@ def get_args():
     parser.add_argument('--engine_path', default='weights/culane_res34.engine',
                         help='path to engine file', type=str)
     parser.add_argument('--video_path', default='example.mp4', help='path to video file', type=str)
-    parser.add_argument('--ori_size', default=(1600, 320), help='size of original frame', type=tuple)
+    parser.add_argument('--ori_size', default=(1280, 720), help='size of original frame', type=tuple)
     return parser.parse_args()
 
 
@@ -141,10 +152,14 @@ if __name__ == "__main__":
     args = get_args()
     cap = cv2.VideoCapture(args.video_path)
     isnet = UFLDv2(args.engine_path, args.config_path, args.ori_size)
+    frame_count = 0
     while True:
         success, img = cap.read()
-        img = cv2.resize(img, (1600, 903))
-        img = img[380:700, :, :]
+        #img = cv2.resize(img, (1600, 903))
+        #img = img[380:700, :, :]
         isnet.forward(img)
-        if cv2.waitKey(25) & 0xFF == ord('q'):
+        frame_count += 1
+        if frame_count > 1:
             break
+        #if cv2.waitKey(25) & 0xFF == ord('q'):
+        #    break
