@@ -29,6 +29,7 @@ RUN pip install nvidia-dali-cuda120
 # for deployment
 RUN pip install onnxmltools
 RUN pip install pycuda
+RUN pip install addict
 
 RUN cd my_interp \
     && sh build.sh

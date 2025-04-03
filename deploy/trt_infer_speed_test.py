@@ -119,6 +119,8 @@ def get_args():
 if __name__ == "__main__":
     # 命令行example: 
     # python ./deploy/trt_infer_speed_test.py --config_path configs/tusimple_res18.py --engine_path weights/pretrained/tusimple_res18.engine --test_seconds 10
+    # For a fp32 model, on a PC with RTX4090, the FPS is about 800.
+    # For a fp32 model, on a Jetson Orin NX 16GB, the FPS is about 50.
     args = get_args()
     test_fps(
         args.engine_path,
