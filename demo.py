@@ -55,6 +55,7 @@ def pred2coords(pred, row_anchor, col_anchor, local_width = 1, original_image_wi
 
     return coords
 if __name__ == "__main__":
+    # example: python demo.py configs/tusimple_res18.py --test_model weights/pretrained/tusimple_res18.pth
     torch.backends.cudnn.benchmark = True
 
     args, cfg = merge_config()
@@ -101,20 +102,55 @@ if __name__ == "__main__":
         raise NotImplementedError
     for split, dataset in zip(splits, datasets):
         loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle = False, num_workers=1)
-        fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-        print(split[:-3]+'avi')
-        vout = cv2.VideoWriter(split[:-3]+'avi', fourcc , 30.0, (img_w, img_h))
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        print(split[:-4]+'mp4')
+        vout_path = split[:-4]+'.mp4'
+        if os.path.exists(vout_path):
+            os.remove(vout_path)
+        print("Video path:", vout_path)
+        vout = cv2.VideoWriter(vout_path, fourcc , 2.0, (img_w, img_h))
         for i, data in enumerate(tqdm.tqdm(loader)):
             imgs, names = data
+            print("imgs.shape:", imgs.shape)
+            print("names:", names)
             imgs = imgs.cuda()
             with torch.no_grad():
                 pred = net(imgs)
 
             vis = cv2.imread(os.path.join(cfg.data_root,names[0]))
+            print("row_anchor:", cfg.row_anchor)
+            print("col_anchor:", cfg.col_anchor)
             coords = pred2coords(pred, cfg.row_anchor, cfg.col_anchor, original_image_width = img_w, original_image_height = img_h)
-            for lane in coords:
+            # Define different colors for each lane (BGR format)
+            colors = [
+                (255, 0, 0),       # Blue
+                (0, 255, 0),       # Green
+                (0, 0, 255),       # Red
+                (255, 255, 0),     # Cyan
+                (255, 0, 255),     # Magenta
+                (0, 255, 255),     # Yellow
+                (128, 0, 0),       # Dark Blue
+                (0, 128, 0),       # Dark Green
+                (0, 0, 128),       # Dark Red
+                (128, 128, 0),     # Teal
+                (128, 0, 128),     # Purple
+                (0, 128, 128),     # Olive
+                (192, 192, 192),   # Silver
+                (128, 128, 128),   # Gray
+                (0, 140, 255),     # Orange Red
+                (30, 144, 255),    # Dodger Blue
+                (203, 192, 255),   # Pink
+                (0, 215, 255),     # Gold
+                (147, 20, 255),    # Deep Pink
+                (140, 230, 240)    # Khaki
+            ]
+            for lane_idx, lane in enumerate(coords):
                 for coord in lane:
-                    cv2.circle(vis,coord,5,(0,255,0),-1)
+                    # Use last color when exceeding predefined colors count
+                    color_idx = min(lane_idx, len(colors)-1)
+                    cv2.circle(vis, coord, 5, colors[color_idx], -1)
             vout.write(vis)
+            if i > 10:
+                break
         
         vout.release()
