@@ -1,5 +1,5 @@
 dataset= 'Tusimple'
-data_root= '' # Need to be modified before running
+data_root= '/app/datasets/TUSimple/tusimple' # Need to be modified before running
 epoch= 100
 batch_size= 32
 optimizer= 'SGD'
