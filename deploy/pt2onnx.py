@@ -21,9 +21,10 @@ def get_args():
     return parser.parse_args()
 
 
-def convert(model, args):
+def convert(model, args, train_size=(1600, 320)):
     dist_print('start convert...')
-    images = torch.ones((1, 3, args.size[1], args.size[0])).cuda()
+    #images = torch.ones((1, 3, args.size[1], args.size[0])).cuda()
+    images = torch.ones((1, 3, train_size[1], train_size[0])).cuda()
     onnx_path = args.model_path[:-4] + ".onnx"
     with torch.no_grad():
         torch.onnx.export(model, images,
@@ -41,12 +42,16 @@ def convert(model, args):
             onnxmltools.utils.save_model(onnx_model, onnx_half_path)
             dist_print("Half model is saved at", onnx_half_path)
 
+        trtexec_command = f"trtexec --onnx={onnx_path} --saveEngine={onnx_path[:-5]}.engine"
+        dist_print("\n\nTo convert to TensorRT, please run the following command:\n  ", trtexec_command)
 
 if __name__ == "__main__":
     torch.backends.cudnn.benchmark = True
     args = get_args()
     cfg = Config.fromfile(args.config_path)
     cfg.batch_size = 1
+
+    train_size = (cfg.train_width, cfg.train_height)
 
     assert cfg.backbone in ['18', '34', '50', '101', '152', '50next', '101next', '50wide', '101wide']
 
@@ -67,4 +72,6 @@ if __name__ == "__main__":
         else:
             compatible_state_dict[k] = v
     net.load_state_dict(compatible_state_dict, strict=False)
-    convert(net, args)
+    convert(net, args, train_size)
+
+    # tensorrt command: trtexec --onnx=weights/pretrained/tusimple_res18.onnx --saveEngine=weights/pretrained/tusimple_res18.engine 

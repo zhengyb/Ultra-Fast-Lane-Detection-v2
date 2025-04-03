@@ -149,6 +149,7 @@ def get_args():
 
 
 if __name__ == "__main__":
+    # python deploy/trt_infer.py --config_path  configs/tusimple_res18.py --engine_path weights/pretrained/tusimple_res18.engine --video_path example.mp4
     args = get_args()
     cap = cv2.VideoCapture(args.video_path)
     isnet = UFLDv2(args.engine_path, args.config_path, args.ori_size)
